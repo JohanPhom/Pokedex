@@ -1,0 +1,396 @@
+<!doctype HTML>
+<html>
+
+<head>
+  <title>Pokedex</title>
+  <meta charset="utf-8" />
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@4.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <link href="style.css" rel="stylesheet">
+</head>
+
+<body>
+  <div id="app">
+    <v-app class="grey-ligthen-4">
+      <v-main class="main">
+        <v-toolbar app margin color="#FF6E40">
+          <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
+          <v-toolbar-title class="headline text-uppercase">
+            <span>Pokedex</span>
+            <span class="font-weight-light">Programation web</span>
+          </v-toolbar-title>
+          <v-spacer></v-spacer>
+          <v-text-field style="padding-top:20px" v-model="search" label="Search" @change="getPokemonName(search)">
+          </v-text-field>
+          <v-spacer></v-spacer>
+          <v-btn flat>
+            <span class="mr-2">PHOMSOUVANDARA Johan</span>
+          </v-btn>
+        </v-toolbar>
+
+        <v-navigation-drawer v-model="drawer" app class="primary">
+          <v-list>
+            <v-img max-height="100px" max-width="100px" style="margin:auto auto;" src="images/pokeball.png"></v-img>
+            <v-list-item-group color="primary">
+              <v-list-item v-for="(type, index) in types" :key="index" @click="getPokemonType(type.nom)">
+                <v-list-item-content>
+                  <v-list-item-title class="white--text" v-text="type.nom"></v-list-item-title>
+                </v-list-item-content>
+              </v-list-item>
+            </v-list-item-group>
+          </v-list>
+        </v-navigation-drawer>
+
+        <v-row class="justify-end">
+          <v-col cols="auto">
+            <v-dialog transition="dialog-bottom-transition" max-width="80%">
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn rounded style="margin-right:5px" color="success" v-bind="attrs" v-on="on">NEW
+                  <v-icon small>mdi-arrow-up-bold-box-outline</v-icon>
+                </v-btn>
+              </template>
+              <template v-slot:default="dialog">
+                <v-card>
+                  <v-toolbar color="primary" class="headline text-uppercase" dark>Add a new pokemon!
+                    <v-spacer></v-spacer>
+                    <v-img max-height="40px" max-width="120px" src="images/logo.png"></v-img>
+                  </v-toolbar>
+                  <v-form style="padding:20px 40px" ref="form" v-model="valid" lazy-validation>
+                    <v-text-field v-model="newPokemon.nom" label="Name" required>
+                    </v-text-field>
+                    <v-text-field v-model="newPokemon.description" label="Description" required></v-text-field>
+                    <v-file-input v-model="newPokemon.image" truncate-length="15" label="Image (png,jpg)">
+                    </v-file-input>
+
+                    <span class="font-weight-light">Select types</span>
+                    <v-row>
+                      <v-col v-for="type in types" md="4">
+                        <input type="checkbox" :value="type.nom" v-model="newPokemonTypes" @change="print">
+                        <label :for="type.nom">{{type.nom}}</label>
+
+                      </v-col>
+                      <v-col md="12" style="margin-top: 20px;">
+                        <v-slider v-model="newPokemon.base.HP" label="HP" thumb-color="primary" thumb-label="always">
+                        </v-slider>
+                        <v-slider v-model="newPokemon.base.Attack" label="Attack" thumb-color="primary"
+                          thumb-label="always">
+                        </v-slider>
+                        <v-slider v-model="newPokemon.base.Defense" label="Defense" thumb-color="primary"
+                          thumb-label="always">
+                        </v-slider>
+                        <v-slider v-model="newPokemon.base.SpAttack" label="SpAttack" thumb-color="primary"
+                          thumb-label="always">
+                        </v-slider>
+                        <v-slider v-model="newPokemon.base.SpDefense" label="SpDefense" thumb-color="primary"
+                          thumb-label="always">
+                        </v-slider>
+                        <v-slider v-model="newPokemon.base.Speed" label="Speed" thumb-color="primary"
+                          thumb-label="always">
+                        </v-slider>
+
+                      </v-col>
+
+
+                    </v-row>
+                    <v-btn :disabled="!valid" color="success" class="mr-4" @click="validate">
+                      Validate
+                    </v-btn>
+
+                    <v-btn color="error" class="mr-4" @click="reset">
+                      Reset Form
+                    </v-btn>
+                  </v-form>
+                </v-card>
+              </template>
+            </v-dialog>
+            <v-dialog transition="dialog-bottom-transition" max-width="60%">
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn style="margin-right:5px" color="primary" v-bind="attrs" v-on="on"
+                  @click="makeTeam();addInTeam()">Random</v-btn>
+                <v-btn color="primary" v-bind="attrs" v-on="on">Show team</v-btn>
+
+              </template>
+              <template v-slot:default="dialog">
+                <v-card>
+                  <v-toolbar color="primary" class="headline text-uppercase" dark>This is your team !
+                    <v-spacer></v-spacer>
+                    <v-img max-height="40px" max-width="120px" src="images/logo.png"></v-img>
+                  </v-toolbar>
+
+                  <v-container>
+                    <v-layout row wrap>
+                      <v-col v-for="pokemon in myTeam">
+                        <v-card style="margin: 10px 10px;padding:20px 10px;min-height:300px">
+                          <v-card-title>{{ pokemon.nom }}<v-spacer></v-spacer>
+                            <v-btn rounded @click="removePokemon(pokemon);addInTeam()">
+                              <v-icon medium color="red">
+                                mdi-delete
+                              </v-icon>
+                            </v-btn>
+                          </v-card-title>
+                          <v-card-text>{{pokemon.base.HP}}HP</v-card-text>
+                          <v-img max-width="150px" max-height="150px" style="margin:auto auto"
+                            :src="`images/${pokemon.image}`"></v-img>
+                          <v-layout justify-center v-for="type in pokemon.types">
+                            <v-btn :color="type.couleur" outlined rounded text>{{type.nom}}</v-btn>
+                          </v-layout>
+                        </v-card>
+
+                      </v-col>
+                    </v-layout>
+                  </v-container>
+
+                  <v-card-actions class="justify-end">
+                    <v-btn text @click="dialog.value = false">Close</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </template>
+            </v-dialog>
+          </v-col>
+        </v-row>
+
+        <v-list>
+          <v-list-group v-for="pokemon in pokemons" :key="pokemon.id">
+            <template v-slot:activator>
+              <v-list-item-content class="text-center">
+                <v-list-item-title v-text="pokemon.nom"></v-list-item-title>
+              </v-list-item-content>
+            </template>
+
+            <v-list-item class="tile">
+              <v-list-item-content>
+                <div class="text-center" style="margin-bottom:30px">
+                  <v-chip color="orange lighten-2" class="col-1.5 center ma-2" v-for="(value, name) in pokemon.base">
+                    {{name}}: {{value}}
+                  </v-chip>
+
+                </div>
+                <v-layout row justify-space-around>
+                  <v-row cols="1">
+                    <v-spacer></v-spacer>
+                    <v-img max-height="150px" max-width="150px" :src="`images/${pokemon.image}`" class="col-10"></v-img>
+                    <v-spacer></v-spacer>
+                  </v-row>
+                  <div>
+                    <span class="font-weight-light">TYPES</span>
+
+                    <v-layout justify-center class="col-1" v-for="type in pokemon.types">
+                      <v-btn :color="type.couleur" elevation="1" outlined rounded text x-large>{{type.nom}}</v-btn>
+                    </v-layout>
+                  </div>
+                  <v-card class="col-6" :color="pokemon.types[0].couleur" style="margin-bottom:20px">
+                    <v-card-title>
+                      {{pokemon.nom}}
+                      <v-spacer></v-spacer>
+                      <v-btn :disabled="addButton" rounded @click="add(pokemon);addInTeam();sheet = true;timeout+=1000">
+                        ADD
+                        <v-icon color="primary">mdi-hand-peace</v-icon>
+                      </v-btn>
+                      <v-snackbar v-model="sheet" :timeout="timeout" color="success">
+                        <v-icon>mdi-hand-okay</v-icon>
+                        {{message}}
+                      </v-snackbar>
+                    </v-card-title>
+                    <v-card-text v-text="pokemon.description"></v-card-text>
+                  </v-card>
+                </v-layout>
+              </v-list-item-content>
+            </v-list-item>
+          </v-list-group>
+        </v-list>
+      </v-main>
+    </v-app>
+  </div>
+
+  <script language="javascript">
+    new Vue({
+      el: '#app',
+      vuetify: new Vuetify(),
+      data: {
+        selectType: "All",
+        sheet: false,
+        timeout: 4000,
+        search: "",
+        addButton: false,
+        drawer: false,
+        valid: true,
+        types: [],
+        pokemons: [],
+        myTeam: [],
+        newPokemon: {
+          nom: "",
+          description: "",
+          image: "",
+          base: {
+            HP: 0,
+            Attack: 0,
+            Defense: 0,
+            SpAttack: 0,
+            SpDefense: 0,
+            Speed: 0,
+          },
+          types: []
+        },
+
+        newPokemonTypes: [],
+        newPokemonList: []
+
+      },
+      computed: {
+        message: function () {
+          if (this.myTeam.length >= 6) {
+            return "Your team is full! Ready to fight ?"
+          } else {
+            var free_places = 6 - this.myTeam.length;
+            var tmp = "Your team has " + free_places.toString() + " free places left!";
+            return tmp;
+          }
+        }
+      },
+      created: function () {
+        this.getType();
+        this.getPokemon();
+      },
+      methods: {
+        validate() {
+          var self = this;
+          self.newPokemonTypes.forEach(function (name) {
+            var type = { nom: "", couleur: "" };
+            type.nom = name;
+            self.newPokemon.types.push(type);
+          });
+          self.newPokemon.image = self.newPokemon.image.name
+          var finalPokemon = self.newPokemon;
+          self.newPokemonList.push(finalPokemon);
+          self.newPokemonTypes = [];
+          self.newPokemon = {
+            base: [],
+            types: [],
+            nom: "",
+            description: "",
+            image: "",
+          };
+        },
+        reset() {
+          this.$refs.form.reset()
+        },
+        resetValidation() {
+          this.$refs.form.resetValidation()
+        },
+        addInTeam: function () {
+          if (this.myTeam.length >= 6) {
+            this.addButton = true;
+          }
+          else {
+            this.addButton = false;
+          }
+        },
+        getType: function () {
+          let self = this;
+          axios.get("http://localhost:8080/types").then(function (response) {
+            if (response.data.status == 'OK') {
+              response.data.list.forEach(function (type) {
+                self.types.push(type);
+              });
+            }
+          });
+        },
+        getPokemon: function () {
+          let self = this;
+          axios.get("http://localhost:8080/pokemons").then(function (response) {
+            if (response.data.status == 'OK') {
+              response.data.list.forEach(function (type) {
+                self.pokemons.push(type);
+              });
+            }
+          });
+        },
+        getPokemonType: function (type) {
+          let self = this;
+          var array = [];
+          axios.get("http://localhost:8080/pokemonsParCat/" + type).then(function (response) {
+            if (response.data.status == 'OK') {
+              response.data.list.forEach(function (type) {
+                array.push(type);
+              });
+              self.pokemons = array;
+            }
+            self.newPokemonList.forEach(function (pokemon) {
+              pokemon.types.forEach(function (cat) {
+                if (cat.nom == type) {
+                  self.pokemons.push(pokemon);
+                }
+              })
+            });
+          });
+        },
+        getPokemonName: function (chaine) {
+          let self = this;
+          var array = [];
+          if (chaine === "") {
+            axios.get("http://localhost:8080/pokemons").then(function (response) {
+              if (response.data.status == 'OK') {
+                response.data.list.forEach(function (type) {
+                  self.pokemons.push(type);
+                });
+              }
+            });
+
+          } else {
+
+            axios.get("http://localhost:8080/pokemonsParNom/" + chaine).then(function (response) {
+              if (response.data.status == 'OK') {
+                response.data.list.forEach(function (type) {
+                  array.push(type);
+                });
+                self.pokemons = array;
+              }
+              chaine = chaine.toLowerCase();
+              self.newPokemonList.forEach(function (pokemon) {
+                if (pokemon.nom.includes(chaine)) {
+                  self.pokemons.push(pokemon);
+                }
+              });
+            });
+          }
+
+        },
+        makeTeam: function () {
+          let self = this;
+          var array = [];
+          axios.get("http://localhost:8080/team").then(function (response) {
+            if (response.data.status == 'OK') {
+              response.data.team.forEach(function (pokemon) {
+                array.push(pokemon);
+              });
+              self.myTeam = array;
+            }
+          });
+        },
+        removePokemon: function (pokemonToRemove) {
+          let self = this;
+          for (let i = 0; i < self.myTeam.length; i++) {
+            if (self.myTeam[i].nom === pokemonToRemove.nom) {
+              self.myTeam.splice(i, 1);
+              return;
+            }
+          }
+        },
+        add: function (pokemon) {
+          let self = this;
+          self.myTeam.push(pokemon);
+        },
+
+      }
+    });
+
+  </script>
+
+</body>
+
+</html>
